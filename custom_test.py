@@ -79,14 +79,7 @@ def set_seed(g, env_name):
 
 
 def run_game(g, env_name, multi_part_agent_ids, actions_spaces, policy_list, render_mode):
-    """
-    This function is used to generate log for Vue rendering. Saves .json file
-    """
-    log_path = os.getcwd() + '/logs/'
-    if not os.path.exists(log_path):
-        os.mkdir(log_path)
-
-    logger = get_logger(log_path, g.game_name, json_file=render_mode)
+    
     set_seed(g, env_name)
 
     for i in range(len(policy_list)):
@@ -179,8 +172,8 @@ if __name__ == "__main__":
         game = make(env_type)
         info = run_game(game, env_type, multi_part_agent_ids, actions_space, policy_list, render_mode)
         scores = info["winner_information"]
-        print(scores)
+        #print(scores)
         total_score[0] += scores[0] + scores[1] + scores[2]
         total_score[1] += scores[3] + scores[4] + scores[5]
 
-    print("total score (my_ai, opponent): "total_score)
+    print("total score (my_ai, opponent): ", total_score)

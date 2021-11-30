@@ -58,10 +58,31 @@ def dist_closest_bean(beans_positions, head_position, height, width):
         if d < dist: dist = d
     return dist
 
+#return if a and b is neighbor or same
+def is_neighbor(a, b, height, width):
+    ay, ax = a
+    by, bx = b
+
+    dx = abs(ax-bx)
+    if dx == width - 1: dx = 1
+    dy = abs(ay-by)
+    if dy == height -1: dy = 1
+
+    return dx + dy <= 1
+
 def my_controller(observation, action_space, is_act_continuous=False):   
     obs = observation.copy()
-    c_index = obs["controlled_snake_index"]
-    head_pos = obs[c_index][0]  
+    #agent id
+    index = obs["controlled_snake_index"]
+    #agent team
+    team = [2,3,4]
+    enemy = [5,6,7]
+    if not index in team:
+        team = [5,6,7]
+        enemy = [2,3,4]
+
+    head_pos = obs[index][0]  
+    self_length = len(obs[index])
     state = get_state(obs)
     board_width = obs['board_width']
     board_height = obs['board_height']
@@ -75,6 +96,31 @@ def my_controller(observation, action_space, is_act_continuous=False):
     min_dist = 99999
     for i in range(4):
         y, x = get_next_pos(head_pos,i,board_width,board_height)
+
+        if state[y][x] > 1: continue
+        
+        skip_flag = False
+
+        for j in enemy:
+            enemy_head = obs[j][0]
+            enemy_len = len(obs[j])
+            if self_length > enemy_len and is_neighbor((y,x),enemy_head, board_height, board_width):
+                skip_flag = True
+                break
+        for j in team:
+            if j == index: continue
+            friend_head = obs[j][0]
+            friend_len = len(obs[j])
+            if is_neighbor((y,x),friend_head, board_height, board_width):
+                if self_length > friend_len:
+                    skip_flag = True
+                    break
+                if self_length == friend_len and j < index:
+                    skip_flag = True
+                    break
+
+        if skip_flag: continue
+
         if state[y][x] == 1:
             action_index = i
             break;
