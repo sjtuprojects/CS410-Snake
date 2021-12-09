@@ -1,0 +1,14 @@
+started batcher 0
+started batcher 1
+opened worker 4
+closed worker 4
+opened worker 5
+closed worker 5
+opened worker 3
+closed worker 3
+opened worker 0
+closed worker 0
+opened worker 2
+closed worker 2
+opened worker 1
+closed worker 1

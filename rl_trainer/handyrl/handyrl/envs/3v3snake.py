@@ -68,25 +68,48 @@ class Environment(BaseEnvironment):
 
     def reset(self, args={}):
         state = self.env.reset()
-        self.update((state[0], {}, None, False), True)
+        self.update((state[0], {}, [0,0,0,0,0,0], False, None), True)
 
     def update(self, info, reset):
-        state, last_actions, last_reward, last_terminal = info
+        state, last_actions, last_reward, last_terminal, last_info = info
         if reset:
             self.state_list = []
             self.steps = 0
+            self.episode_reward = np.zeros(6)
         self.state_list.append(state)
         self.last_actions = last_actions
         self.last_reward = last_reward
         self.last_terminal = last_terminal
+        self.last_info = last_info
+        self.episode_reward += np.array(last_reward)
         self.steps += 1
 
     # Handle the actions of all players
     def step(self, actions):
         action_list = [actions.get(p, None) or 0 for p in self.players()]
         next_state, reward, is_terminal, _, info = self.env.step(self.env.encode(action_list))
+
+        # grid_map = self.make_grid_map(next_state[0])
+        # print('\n'.join([''.join([str(cell) for cell in row]) for row in grid_map]), '\n')
+
         # State transition
-        self.update((next_state[0], action_list, reward, is_terminal), False)
+        self.update((next_state[0], action_list, reward, is_terminal, info), False)
+
+    # [Utility] For printing map
+    def make_grid_map(self, state):
+        snakes_map = [[0]*self.BOARD_WIDTH for i in range(self.BOARD_HEIGHT)]
+
+        snakes_positions = [state[i+2] for i in self.players()]
+        food_positions = state[1]
+
+        for index, pos in enumerate(snakes_positions):
+            for p in pos:
+                snakes_map[p[0]][p[1]] = index
+
+        for food in food_positions:
+            snakes_map[food[0]][food[1]] = 8
+
+        return snakes_map
 
     # List of player IDs that can act in the turn (currently all players, 1 player/team, 6 teams)
     def turns(self):
@@ -98,6 +121,34 @@ class Environment(BaseEnvironment):
             return True
         return False
 
+    # Reward of a step
+    def reward(self):
+        snakes_position = np.array(self.last_info['snakes_position'], dtype=object)
+        beans_position = np.array(self.last_info['beans_position'], dtype=object)
+        snake_heads = [snake[0] for snake in snakes_position]
+        step_reward = {p: 0 for p in self.players()}
+
+        if np.sum(self.episode_reward[:3]) > np.sum(self.episode_reward[3:]):
+            for i in range(0, 3):
+                step_reward[i] += 50
+                step_reward[self.NUM_AGENTS - 1 - i] -= 25
+        elif np.sum(self.episode_reward[:3]) < np.sum(self.episode_reward[3:]):
+            for i in range(0, 3):
+                step_reward[i] -= 25
+                step_reward[self.NUM_AGENTS - 1 - i] += 50
+
+        for i in self.players():
+            if self.last_reward[i] > 0:
+                step_reward[i] += 20
+            else:
+                self_head = np.array(snake_heads[i])
+                dists = [np.sqrt(np.sum(np.square(other_head - self_head))) for other_head in beans_position]
+                step_reward[i] -= min(dists)
+                if self.last_reward[i] < 0:
+                    step_reward[i] -= 10
+
+        return step_reward
+
     # Outcome of a match
     def outcome(self):
         state_copy = self.state_list[-1].copy()
@@ -105,11 +156,17 @@ class Environment(BaseEnvironment):
         lengths = [len(state_copy[i+2]) for i in self.players()]
         outcomes = {p: 0 for p in self.players()}
 
-        longest_index = max(range(len(lengths)), key=lengths.__getitem__)
+        team_1_score = lengths[0] + lengths[1] + lengths[2]
+        team_2_score = lengths[3] + lengths[4] + lengths[5]
 
-        # Match outcome score is the final length of snakes
-        for i in self.players():
-            outcomes[i] = 1 if i == longest_index else -1
+        if team_1_score > team_2_score:
+            for i in range(0, 3):
+                outcomes[i] = 1
+                outcomes[self.NUM_AGENTS - 1 - i] = -1
+        elif team_1_score < team_2_score:
+            for i in range(0, 3):
+                outcomes[i] = -1
+                outcomes[self.NUM_AGENTS - 1 - i] = 1
         
         return outcomes
 
@@ -131,10 +188,6 @@ class Environment(BaseEnvironment):
 
     # Input for neural network
     # Note: observation is on a per-snake basis
-    # Self position        : 0:head_x; 1:head_y
-    # Head surroundings    : 2:head_up; 3:head_down; 4:head_left; 5:head_right
-    # Beans positions      : (6, 7) (8, 9) (10, 11) (12, 13) (14, 15)
-    # Other snake positions: (16, 17) (18, 19) (20, 21) (22, 23) (24, 25) -- (other_x - self_x, other_y - self_y)
     def observation(self, player=None):
         if player is None:
             agent_index = 0
@@ -171,27 +224,6 @@ class Environment(BaseEnvironment):
             b[16, pos[0] * self.BOARD_WIDTH + pos[1]] = 1
 
         return b.reshape(-1, self.BOARD_HEIGHT, self.BOARD_WIDTH)
-
-    # Utility for observation (1/2)
-    def get_surrounding(self, state, width, height, x, y):
-        surrounding = [state[(y - 1) % height][x], # up
-                    state[(y + 1) % height][x],    # down
-                    state[y][(x - 1) % width],     # left
-                    state[y][(x + 1) % width]]     # right
-
-        return surrounding
-
-    # Utility for observation (2/2)
-    def make_grid_map(self, board_width, board_height, beans_positions:list, snakes_positions:dict):
-        snakes_map = [[[0] for _ in range(board_width)] for _ in range(board_height)]
-        for index, pos in snakes_positions.items():
-            for p in pos:
-                snakes_map[p[0]][p[1]][0] = index
-
-        for bean in beans_positions:
-            snakes_map[bean[0]][bean[1]][0] = 1
-
-        return snakes_map
 
 if __name__ == '__main__':
     e = Environment()
