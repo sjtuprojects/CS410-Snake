@@ -210,7 +210,7 @@ def evaluate_mp(env, agents, critic, env_args, args_patterns, num_process, num_g
                 first_agent = 0 if i < (num_games + 1) // 2 else 1
                 tmp_pat_idx, agent_ids = (pat_idx + '-F', [0, 1]) if first_agent == 0 else (pat_idx + '-S', [1, 0])
             else:
-                tmp_pat_idx, agent_ids = pat_idx, random.sample(list(range(len(agents))), len(agents))
+                tmp_pat_idx, agent_ids = pat_idx, [0, 1, 2, 3, 4, 5] #random.sample(list(range(len(agents))), len(agents))
             in_queue.put((args_cnt, agent_ids, tmp_pat_idx, args))
             for p in range(len(agents)):
                 result_map[p][tmp_pat_idx] = {}
@@ -305,8 +305,15 @@ def eval_main(args, argv):
     num_process = int(argv[2]) if len(argv) >= 3 else 1
 
     agent1 = build_agent(model_path, env)
+    agent2 = build_agent(model_path, env)
+    agent3 = build_agent(model_path, env)
     if agent1 is None:
         agent1 = Agent(get_model(env, model_path))
+    if agent2 is None:
+        agent2 = Agent(get_model(env, model_path))
+    if agent3 is None:
+        agent3 = Agent(get_model(env, model_path))
+
     critic = None
 
     print('%d process, %d games' % (num_process, num_games))
@@ -314,7 +321,7 @@ def eval_main(args, argv):
     seed = random.randrange(1e8)
     print('seed = %d' % seed)
 
-    agents = [agent1] + [RandomAgent() for _ in range(len(env.players()) - 1)]
+    agents = [agent1, agent2, agent3] + [RandomAgent() for _ in range(len(env.players()) - 3)]
 
     evaluate_mp(env, agents, critic, env_args, {'default': {}}, num_process, num_games, seed)
 
