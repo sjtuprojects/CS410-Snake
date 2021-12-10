@@ -29,14 +29,7 @@ def get_state(state):
 
     return state_
 
-#return surrounding of x, y
-def get_surrounding(state, width, height, x, y):
-    surrounding = [state[(y - 1) % height][x],  # up
-                   state[(y + 1) % height][x],  # down
-                   state[y][(x - 1) % width],  # left
-                   state[y][(x + 1) % width]]  # right
 
-    return surrounding
 
 #return coordinate after going 0:up 1:down 2:left 3:right
 def get_next_pos(pos, dir, width, height):

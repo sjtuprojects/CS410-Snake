@@ -133,7 +133,7 @@ def my_controller(observation, action_space, is_act_continuous=False):
     
     state = observation.copy()
 
-    tree = MCTS(state, None, 0.1)
+    tree = MCTS(state, None, 0.5)
 
     probs = tree.getActionProb(state)
     #print(probs)
