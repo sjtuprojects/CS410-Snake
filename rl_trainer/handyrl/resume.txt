@@ -1,0 +1,3 @@
+To resume training, you need to:
+1. set restart_with_saved_epochs: True
+2. set restart_epoch: X, where X is the latest X.pth

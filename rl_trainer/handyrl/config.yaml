@@ -30,8 +30,8 @@ train_args:
         opponent: ['random']
     seed: 0
     restart_epoch: 0
-
-
+    save_no_episodes: 200
+    restart_with_saved_epochs: False
 worker_args:
     server_address: ''
     num_parallel: 8

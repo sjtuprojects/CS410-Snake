@@ -12,6 +12,7 @@ import bz2
 import pickle
 import warnings
 from collections import deque
+from joblib import dump, load
 
 import numpy as np
 import torch
@@ -311,8 +312,14 @@ class Batcher:
 
 class Trainer:
     def __init__(self, args, model):
-        self.episodes = deque()
         self.args = args
+
+        if self.args['restart_with_saved_epochs']:
+            print('Loading saved episodes...')
+            self.episodes = load('./load/episodes.job', mmap_mode=None)
+        else:
+            self.episodes = deque()
+
         self.gpu = torch.cuda.device_count()
         self.model = model
         self.default_lr = 3e-8
@@ -456,6 +463,8 @@ class Learner:
         # thread connection
         self.trainer = Trainer(args, train_model)
 
+        self.runs = 0
+
     def shutdown(self):
         self.shutdown_flag = True
         self.trainer.shutdown()
@@ -480,6 +489,7 @@ class Learner:
     def feed_episodes(self, episodes):
         # analyze generated episodes
         for episode in episodes:
+            self.runs = self.runs + 1
             if episode is None:
                 continue
             for p in episode['args']['player']:
@@ -490,6 +500,16 @@ class Learner:
 
         # store generated episodes
         self.trainer.episodes.extend([e for e in episodes if e is not None])
+
+        # save generated episodes to file
+        if self.runs > self.args['save_no_episodes']:
+          
+            #with open('geese2genepisodes.job', 'wb') as f:
+            #    dump(self.trainer.episodes, f, compress=('lzma', 3))
+            
+            dump(self.trainer.episodes, "./load/episodes.job")
+
+            self.runs = 0
 
         mem_percent = psutil.virtual_memory().percent
         mem_ok = mem_percent <= 95
