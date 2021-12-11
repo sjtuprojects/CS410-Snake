@@ -89,8 +89,8 @@ class Environment(BaseEnvironment):
         action_list = [actions.get(p, None) or 0 for p in self.players()]
         next_state, reward, is_terminal, _, info = self.env.step(self.env.encode(action_list))
 
-        # grid_map = self.make_grid_map(next_state[0])
-        # print('\n'.join([''.join([str(cell) for cell in row]) for row in grid_map]), '\n')
+        #grid_map = self.make_grid_map(next_state[0])
+        #print('\n'.join([''.join([str(cell) for cell in row]) for row in grid_map]), '\n')
 
         # State transition
         self.update((next_state[0], action_list, reward, is_terminal, info), False)
@@ -122,6 +122,7 @@ class Environment(BaseEnvironment):
         return False
 
     # Reward of a step
+    '''
     def reward(self):
         snakes_position = np.array(self.last_info['snakes_position'], dtype=object)
         beans_position = np.array(self.last_info['beans_position'], dtype=object)
@@ -148,6 +149,7 @@ class Environment(BaseEnvironment):
                     step_reward[i] -= 10
 
         return step_reward
+    '''
 
     # Outcome of a match
     def outcome(self):
