@@ -137,7 +137,6 @@ def exec_network_match(env, network_agents, critic, show=False, game_args={}):
 
 
 def build_agent(raw, env):
-    print("Loading agent:", raw)
     if raw == 'random':
         return RandomAgent()
     elif raw == 'rulebase':

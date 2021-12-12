@@ -13,6 +13,7 @@ import pickle
 import warnings
 from collections import deque
 from joblib import dump, load
+from datetime import datetime
 
 import numpy as np
 import torch
@@ -552,6 +553,12 @@ class Learner:
                 mean = r / (n + 1e-6)
                 name_tag = ' (%s)' % name if name != '' else ''
                 print('win rate%s = %.3f (%.1f / %d)' % (name_tag, (mean + 1) / 2, (r + n) / 2, n))
+                with open('./logs/%s_%s.txt' % (datetime.today().strftime('%Y-%m-%d'), name), 'a+') as file:
+                    file.write('%s' %  self.model_epoch)
+                    file.write(" ")
+                    file.write('%.3f' % ((mean + 1) / 2))
+                    file.write("\n")
+                    file.close()
 
             if len(self.args.get('eval', {}).get('opponent', [])) <= 1:
                 output_wp('', self.results[self.model_epoch])
