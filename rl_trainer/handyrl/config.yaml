@@ -27,7 +27,11 @@ train_args:
     policy_target: 'TD' # 'UPGO' 'VTRACE' 'TD' 'MC'
     value_target: 'TD' # 'VTRACE' 'TD' 'MC'
     eval:
-        opponent: ['random']
+        opponent:
+            #- random
+            #- MCTSAgent
+            #- GreedyAgent
+            #- RLAgent
     seed: 0
     restart_epoch: 0
     save_no_episodes: 200

@@ -30,6 +30,36 @@ class RuleBasedAgent(RandomAgent):
             return random.choice(env.legal_actions(player))
 
 
+class GreedyAgent(RandomAgent):
+    def action(self, env, player, show=False):
+        if hasattr(env, 'agent_greedy'):
+            return env.agent_greedy(player)
+        else:
+            assert False
+            print("Warning, greedy agent not loaded, opponent is random")
+            return random.choice(env.legal_actions(player))
+
+
+class MCTSAgent(RandomAgent):
+    def action(self, env, player, show=False):
+        if hasattr(env, 'agent_mcts'):
+            return env.agent_mcts(player)
+        else:
+            assert False
+            print("Warning, MCTS agent not loaded, opponent is random")
+            return random.choice(env.legal_actions(player))
+
+
+class RLAgent(RandomAgent):
+    def action(self, env, player, show=False):
+        if hasattr(env, 'agent_rl'):
+            return env.agent_rl(player)
+        else:
+            assert False
+            print("Warning, RL agent not loaded, opponent is random")
+            return random.choice(env.legal_actions(player))
+
+
 def print_outputs(env, prob, v):
     if hasattr(env, 'print_outputs'):
         env.print_outputs(prob, v)
