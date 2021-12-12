@@ -10,6 +10,7 @@ import multiprocessing as mp
 from .environment import prepare_env, make_env
 from .connection import send_recv, accept_socket_connections, connect_socket_connection
 from .agent import RandomAgent, RuleBasedAgent, Agent, EnsembleAgent, SoftAgent
+from .agent import MCTSAgent, GreedyAgent, RLAgent
 
 
 network_match_port = 9876
@@ -136,10 +137,17 @@ def exec_network_match(env, network_agents, critic, show=False, game_args={}):
 
 
 def build_agent(raw, env):
+    print("Loading agent:", raw)
     if raw == 'random':
         return RandomAgent()
     elif raw == 'rulebase':
         return RuleBasedAgent()
+    elif raw == 'MCTSAgent':
+        return MCTSAgent()
+    elif raw == 'RLAgent':
+        return RLAgent()
+    elif raw == 'GreedyAgent':
+        return GreedyAgent()
     return None
 
 
@@ -301,12 +309,18 @@ def eval_main(args, argv):
     env = make_env(env_args)
 
     model_path = argv[0] if len(argv) >= 1 else 'models/latest.pth'
-    num_games = int(argv[1]) if len(argv) >= 2 else 100
-    num_process = int(argv[2]) if len(argv) >= 3 else 1
+    opponent = argv[1] if len(argv) >= 2 else 'random'
+    num_games = int(argv[2]) if len(argv) >= 3 else 100
+    num_process = int(argv[3]) if len(argv) >= 4 else 1
 
     agent1 = build_agent(model_path, env)
     agent2 = build_agent(model_path, env)
     agent3 = build_agent(model_path, env)
+
+    agent4 = build_agent(opponent, env)
+    agent5 = build_agent(opponent, env)
+    agent6 = build_agent(opponent, env)
+
     if agent1 is None:
         agent1 = Agent(get_model(env, model_path))
     if agent2 is None:
@@ -321,7 +335,7 @@ def eval_main(args, argv):
     seed = random.randrange(1e8)
     print('seed = %d' % seed)
 
-    agents = [agent1, agent2, agent3] + [RandomAgent() for _ in range(len(env.players()) - 3)]
+    agents = [agent1, agent2, agent3] + [agent4, agent5, agent6]
 
     evaluate_mp(env, agents, critic, env_args, {'default': {}}, num_process, num_games, seed)
 

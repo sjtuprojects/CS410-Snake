@@ -17,6 +17,11 @@ from ..environment import BaseEnvironment
 # Import snakes3v3 game environment
 from env.chooseenv import make
 
+# Import opponents
+from agent.greedy import submission as greedyAgent
+from agent.MCTS import submission as mctsAgent
+from agent.rl import submission as rlAgent
+
 # Neural network for snake agent (1/2)
 class TorusConv2d(nn.Module):
     def __init__(self, input_dim, output_dim, kernel_size, bn):
@@ -183,6 +188,21 @@ class Environment(BaseEnvironment):
     # List of snakes on the board
     def players(self):
         return list(range(self.NUM_AGENTS))
+
+    # Opponent for evaluation (1)
+    def agent_greedy(self, player):
+        action = greedyAgent.my_controller(self.state_list[-1].copy(), None)
+        return action[0].index(max(action[0]))
+
+    # Opponent for evaluation (2)
+    def agent_mcts(self, player):
+        action = mctsAgent.my_controller(self.state_list[-1].copy(), None)
+        return action[0].index(max(action[0]))
+
+    # Opponent for evaluation (3)
+    def agent_rl(self, player):
+        action = rlAgent.my_controller(self.state_list[-1].copy(), None, True)
+        return action[0].index(max(action[0]))
 
     # PyTorch neural network model
     def net(self):
