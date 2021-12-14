@@ -4,11 +4,13 @@ import time
 import json
 import argparse
 import numpy as np
+from concurrent import futures
 
 from env.chooseenv import make
 from utils.get_logger import get_logger
 from env.obs_interfaces.observation import obs_type
 
+WORKER_COUNT = 32
 
 class NpEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -146,6 +148,18 @@ def get_valid_agents():
     dir_path = os.path.join(os.path.dirname(__file__), 'agent')
     return [f for f in os.listdir(dir_path) if f != "__pycache__"]
 
+def run(i,game, env_type, multi_part_agent_ids, actions_space, policy_list, render_mode):
+    info = run_game(game, env_type, multi_part_agent_ids, actions_space, policy_list, render_mode)
+    scores = info["winner_information"]
+    teamA = scores[0] + scores[1] + scores[2]
+    teamB = scores[3] + scores[4] + scores[5]
+    WL = "lose"
+    if teamA > teamB: 
+        WL = "win"
+    elif teamA == teamB:
+        WL = "draw"
+    print("game",i, scores, WL)
+    return (teamA, teamB,WL)
 
 if __name__ == "__main__":
     env_type = "snakes_3v3"
@@ -167,13 +181,42 @@ if __name__ == "__main__":
     
     num_rounds = int(args.rounds)
     total_score = [0,0]
+    wins = 0
 
-    for i in range(num_rounds):
-        game = make(env_type)
-        info = run_game(game, env_type, multi_part_agent_ids, actions_space, policy_list, render_mode)
-        scores = info["winner_information"]
-        #print(scores)
-        total_score[0] += scores[0] + scores[1] + scores[2]
-        total_score[1] += scores[3] + scores[4] + scores[5]
+    executor = futures.ProcessPoolExecutor(WORKER_COUNT)
+    result = [executor.submit(run,i,game, env_type, multi_part_agent_ids, actions_space, policy_list, render_mode) for i in range(num_rounds)]
+    futures.wait(result)
 
-    print("total score (my_ai, opponent): ", total_score)
+    for res in result:
+        scoreA, scoreB, WL = res.result()
+        total_score[0] += scoreA
+        total_score[1] += scoreB
+        if WL == "win": wins += 1
+        if WL == "draw": wins += 0.5
+
+    winrate = wins / num_rounds
+
+    print("Scores =", total_score, " Winrate =", winrate, f"({wins}/{num_rounds})")
+
+
+    # for i in range(num_rounds):
+    #     game = make(env_type)
+    #     info = run_game(game, env_type, multi_part_agent_ids, actions_space, policy_list, render_mode)
+    #     scores = info["winner_information"]
+    #     teamA = scores[0] + scores[1] + scores[2]
+    #     teamB = scores[3] + scores[4] + scores[5]
+    #     total_score[0] += teamA
+    #     total_score[1] += teamB
+    #     WL = "lose"
+    #     if teamA > teamB: 
+    #         WL = "win"
+    #         winrate += 1
+    #     elif teamA == teamB:
+    #         WL = "draw"
+
+    # print("game", i, ":", scores, WL)
+
+    # winrate /= num_rounds
+    # print("total score (my_ai, opponent): ", total_score, " winrate =", winrate)
+
+
