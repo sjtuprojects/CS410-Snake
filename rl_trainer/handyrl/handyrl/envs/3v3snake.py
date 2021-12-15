@@ -211,7 +211,7 @@ class Environment(BaseEnvironment):
     def get_snake_directions(self, snake):
         directions = {p: [] for p in [0, 1, 2, 3]}
 
-        prev_pos = snake[:1]
+        prev_pos = snake[:1][0]
 
         for pos in snake:
             if pos[0] - prev_pos[0] == -1: # FACE UP
@@ -241,28 +241,28 @@ class Environment(BaseEnvironment):
         for p, snake in enumerate(snakes_positions):
             # Head position
             for pos in snake[:1]:
-                b[0 + (p - player) % self.NUM_AGENTS, pos[1] * self.BOARD_WIDTH + pos[0]] = 1
+                b[0 + (p - player) % self.NUM_AGENTS, pos[0] * self.BOARD_WIDTH + pos[1]] = 1
             # Tip position
             for pos in snake[-1:]:
-                b[6 + (p - player) % self.NUM_AGENTS, pos[1] * self.BOARD_WIDTH + pos[0]] = 1
+                b[6 + (p - player) % self.NUM_AGENTS, pos[0] * self.BOARD_WIDTH + pos[1]] = 1
             # Whole position
             for pos in snake:
-                b[12 + (p - player) % self.NUM_AGENTS, pos[1] * self.BOARD_WIDTH + pos[0]] = 1
+                b[12 + (p - player) % self.NUM_AGENTS, pos[0] * self.BOARD_WIDTH + pos[1]] = 1
 
             directions = self.get_snake_directions(snake)
 
             # Direction Up
             for pos in directions[0]:
-                b[18 + (p - player) % self.NUM_AGENTS, pos[1] * self.BOARD_WIDTH + pos[0]] = 1
+                b[18 + (p - player) % self.NUM_AGENTS, pos[0] * self.BOARD_WIDTH + pos[1]] = 1
             # Direction Down
             for pos in directions[1]:
-                b[24 + (p - player) % self.NUM_AGENTS, pos[1] * self.BOARD_WIDTH + pos[0]] = 1
+                b[24 + (p - player) % self.NUM_AGENTS, pos[0] * self.BOARD_WIDTH + pos[1]] = 1
             # Direction Left
             for pos in directions[2]:
-                b[30 + (p - player) % self.NUM_AGENTS, pos[1] * self.BOARD_WIDTH + pos[0]] = 1
+                b[30 + (p - player) % self.NUM_AGENTS, pos[0] * self.BOARD_WIDTH + pos[1]] = 1
             # Direction Right
             for pos in directions[3]:
-                b[36 + (p - player) % self.NUM_AGENTS, pos[1] * self.BOARD_WIDTH + pos[0]] = 1
+                b[36 + (p - player) % self.NUM_AGENTS, pos[0] * self.BOARD_WIDTH + pos[1]] = 1
 
         # Previous head position
         if len(self.state_list) > 1:
@@ -270,12 +270,12 @@ class Environment(BaseEnvironment):
             snakes_prev = [state_prev_copy[i+2] for i in self.players()]
             for p, snake in enumerate(snakes_prev):
                 for pos in snake[:1]:
-                    b[42 + (p - player) % self.NUM_AGENTS, pos[1] * self.BOARD_WIDTH + pos[0]] = 1
+                    b[42 + (p - player) % self.NUM_AGENTS, pos[0] * self.BOARD_WIDTH + pos[1]] = 1
 
         # Food
         food_positions = state_copy[1]
         for pos in food_positions:
-            b[48, pos[1] * self.BOARD_WIDTH + pos[0]] = 1
+            b[48, pos[0] * self.BOARD_WIDTH + pos[1]] = 1
 
         # Steps
         b[49] = np.full(self.BOARD_WIDTH * self.BOARD_HEIGHT, np.tanh((200 - self.steps) / 16))
