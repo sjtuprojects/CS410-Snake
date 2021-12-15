@@ -222,6 +222,7 @@ class Environment(BaseEnvironment):
                 directions[2].append(pos)
             elif pos[1] - prev_pos[1] == 1: # FACE RIGHT
                 directions[3].append(pos)
+            prev_pos = pos
 
         return directions
 
@@ -263,6 +264,7 @@ class Environment(BaseEnvironment):
             # Direction Right
             for pos in directions[3]:
                 b[36 + (p - player) % self.NUM_AGENTS, pos[0] * self.BOARD_WIDTH + pos[1]] = 1
+            print(directions)
 
         # Previous head position
         if len(self.state_list) > 1:
