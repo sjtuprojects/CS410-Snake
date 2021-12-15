@@ -43,7 +43,7 @@ class SnakeNet(nn.Module):
         super().__init__()
         layers, filters = 12, 32
 
-        self.conv0 = TorusConv2d(25, filters, (3, 3), True)
+        self.conv0 = TorusConv2d(51, filters, (3, 3), True)
         self.blocks = nn.ModuleList([TorusConv2d(filters, filters, (3, 3), True) for _ in range(layers)])
         self.head_p = nn.Linear(filters, 4, bias=False)
         self.head_v = nn.Linear(filters * 2, 1, bias=False)
@@ -208,6 +208,23 @@ class Environment(BaseEnvironment):
     def net(self):
         return SnakeNet
 
+    def get_snake_directions(self, snake):
+        directions = {p: [] for p in [0, 1, 2, 3]}
+
+        prev_pos = snake[:1]
+
+        for pos in snake:
+            if pos[0] - prev_pos[0] == -1: # FACE UP
+                directions[0].append(pos)
+            elif pos[0] - prev_pos[0] == 1: # FACE DOWN
+                directions[1].append(pos)
+            elif pos[1] - prev_pos[1] == -1: # FACE LEFT
+                directions[2].append(pos)
+            elif pos[1] - prev_pos[1] == 1: # FACE RIGHT
+                directions[3].append(pos)
+
+        return directions
+
     # Input for neural network
     # Note: observation is on a per-snake basis
     def observation(self, player=None):
@@ -216,7 +233,7 @@ class Environment(BaseEnvironment):
         else:
             agent_index = player
 
-        b = np.zeros((self.NUM_AGENTS * 4 + 1, self.BOARD_WIDTH * self.BOARD_HEIGHT), dtype=np.float32)
+        b = np.zeros((self.NUM_AGENTS * 8 + 3, self.BOARD_WIDTH * self.BOARD_HEIGHT), dtype=np.float32)
 
         state_copy = self.state_list[-1].copy()
         snakes_positions = [state_copy[i+2] for i in self.players()]
@@ -224,13 +241,28 @@ class Environment(BaseEnvironment):
         for p, snake in enumerate(snakes_positions):
             # Head position
             for pos in snake[:1]:
-                b[0 + (p - player) % self.NUM_AGENTS, pos[0] * self.BOARD_WIDTH + pos[1]] = 1
+                b[0 + (p - player) % self.NUM_AGENTS, pos[1] * self.BOARD_WIDTH + pos[0]] = 1
             # Tip position
             for pos in snake[-1:]:
-                b[4 + (p - player) % self.NUM_AGENTS, pos[0] * self.BOARD_WIDTH + pos[1]] = 1
+                b[6 + (p - player) % self.NUM_AGENTS, pos[1] * self.BOARD_WIDTH + pos[0]] = 1
             # Whole position
             for pos in snake:
-                b[8 + (p - player) % self.NUM_AGENTS, pos[0] * self.BOARD_WIDTH + pos[1]] = 1
+                b[12 + (p - player) % self.NUM_AGENTS, pos[1] * self.BOARD_WIDTH + pos[0]] = 1
+
+            directions = self.get_snake_directions(snake)
+
+            # Direction Up
+            for pos in directions[0]:
+                b[18 + (p - player) % self.NUM_AGENTS, pos[1] * self.BOARD_WIDTH + pos[0]] = 1
+            # Direction Down
+            for pos in directions[1]:
+                b[24 + (p - player) % self.NUM_AGENTS, pos[1] * self.BOARD_WIDTH + pos[0]] = 1
+            # Direction Left
+            for pos in directions[2]:
+                b[30 + (p - player) % self.NUM_AGENTS, pos[1] * self.BOARD_WIDTH + pos[0]] = 1
+            # Direction Right
+            for pos in directions[3]:
+                b[36 + (p - player) % self.NUM_AGENTS, pos[1] * self.BOARD_WIDTH + pos[0]] = 1
 
         # Previous head position
         if len(self.state_list) > 1:
@@ -238,12 +270,16 @@ class Environment(BaseEnvironment):
             snakes_prev = [state_prev_copy[i+2] for i in self.players()]
             for p, snake in enumerate(snakes_prev):
                 for pos in snake[:1]:
-                    b[12 + (p - player) % self.NUM_AGENTS, pos[0] * self.BOARD_WIDTH + pos[1]] = 1
+                    b[42 + (p - player) % self.NUM_AGENTS, pos[1] * self.BOARD_WIDTH + pos[0]] = 1
 
         # Food
         food_positions = state_copy[1]
         for pos in food_positions:
-            b[16, pos[0] * self.BOARD_WIDTH + pos[1]] = 1
+            b[48, pos[1] * self.BOARD_WIDTH + pos[0]] = 1
+
+        # Steps
+        b[49] = np.full(self.BOARD_WIDTH * self.BOARD_HEIGHT, np.tanh((200 - self.steps) / 16))
+        b[50] = np.full(self.BOARD_WIDTH * self.BOARD_HEIGHT, np.tanh((200 - self.steps) / 128))
 
         return b.reshape(-1, self.BOARD_HEIGHT, self.BOARD_WIDTH)
 
