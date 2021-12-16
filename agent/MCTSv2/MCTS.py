@@ -6,6 +6,7 @@ import simUtils as util
 
 EPS = 1e-8
 
+#THIS IS THE 6 PLAYER VERSION
 class MCTS():
     def __init__(self, state, nnet, timeLimit=1.9, cpuct=1.0, stepLimit = 100, useTemp = False):
         self.state = state

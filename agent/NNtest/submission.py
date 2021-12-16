@@ -3,6 +3,7 @@ from numpy.core.fromnumeric import argmax
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import onnxruntime
 
 # Neural network for snake agent (1/2)
 class TorusConv2d(nn.Module):
@@ -71,20 +72,21 @@ def make_input(state, player):
 
         return b.reshape(-1, BOARD_HEIGHT, BOARD_WIDTH)
 
+model = SnakeNet()
+model_path = "./models/129.pth"
+model.load_state_dict(torch.load(model_path))
+model.eval()
+
 def my_controller(observation, action_space, is_act_continuous=False):   
     obs = observation.copy()
 
     index = obs["controlled_snake_index"]
 
-    model = SnakeNet()
-    model_path = "./models/latest.pth"
-    model.load_state_dict(torch.load(model_path))
-    model.eval()
     x = make_input(obs, index-2)
 
     with torch.no_grad():
         xt = torch.from_numpy(x).unsqueeze(0)
-        output = model(xt)
+        output = model(xt)  
    
     policy = output["policy"].squeeze(0).detach().numpy()
     value = output["value"].item()

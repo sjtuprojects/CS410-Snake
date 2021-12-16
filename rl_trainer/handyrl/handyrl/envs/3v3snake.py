@@ -43,7 +43,7 @@ class SnakeNet(nn.Module):
         super().__init__()
         layers, filters = 12, 32
 
-        self.conv0 = TorusConv2d(51, filters, (3, 3), True)
+        self.conv0 = TorusConv2d(25, filters, (3, 3), True)
         self.blocks = nn.ModuleList([TorusConv2d(filters, filters, (3, 3), True) for _ in range(layers)])
         self.head_p = nn.Linear(filters, 4, bias=False)
         self.head_v = nn.Linear(filters * 2, 1, bias=False)
@@ -233,7 +233,7 @@ class Environment(BaseEnvironment):
         else:
             agent_index = player
 
-        b = np.zeros((self.NUM_AGENTS * 8 + 3, self.BOARD_WIDTH * self.BOARD_HEIGHT), dtype=np.float32)
+        b = np.zeros((self.NUM_AGENTS * 4 + 1, self.BOARD_WIDTH * self.BOARD_HEIGHT), dtype=np.float32)
 
         state_copy = self.state_list[-1].copy()
         snakes_positions = [state_copy[i+2] for i in self.players()]
@@ -252,17 +252,17 @@ class Environment(BaseEnvironment):
             directions = self.get_snake_directions(snake)
 
             # Direction Up
-            for pos in directions[0]:
-                b[18 + (p - player) % self.NUM_AGENTS, pos[1] * self.BOARD_WIDTH + pos[0]] = 1
-            # Direction Down
-            for pos in directions[1]:
-                b[24 + (p - player) % self.NUM_AGENTS, pos[1] * self.BOARD_WIDTH + pos[0]] = 1
-            # Direction Left
-            for pos in directions[2]:
-                b[30 + (p - player) % self.NUM_AGENTS, pos[1] * self.BOARD_WIDTH + pos[0]] = 1
-            # Direction Right
-            for pos in directions[3]:
-                b[36 + (p - player) % self.NUM_AGENTS, pos[1] * self.BOARD_WIDTH + pos[0]] = 1
+            # for pos in directions[0]:
+            #     b[18 + (p - player) % self.NUM_AGENTS, pos[1] * self.BOARD_WIDTH + pos[0]] = 1
+            # # Direction Down
+            # for pos in directions[1]:
+            #     b[24 + (p - player) % self.NUM_AGENTS, pos[1] * self.BOARD_WIDTH + pos[0]] = 1
+            # # Direction Left
+            # for pos in directions[2]:
+            #     b[30 + (p - player) % self.NUM_AGENTS, pos[1] * self.BOARD_WIDTH + pos[0]] = 1
+            # # Direction Right
+            # for pos in directions[3]:
+            #     b[36 + (p - player) % self.NUM_AGENTS, pos[1] * self.BOARD_WIDTH + pos[0]] = 1
 
         # Previous head position
         if len(self.state_list) > 1:
@@ -278,8 +278,8 @@ class Environment(BaseEnvironment):
             b[48, pos[1] * self.BOARD_WIDTH + pos[0]] = 1
 
         # Steps
-        b[49] = np.full(self.BOARD_WIDTH * self.BOARD_HEIGHT, np.tanh((200 - self.steps) / 16))
-        b[50] = np.full(self.BOARD_WIDTH * self.BOARD_HEIGHT, np.tanh((200 - self.steps) / 128))
+        #b[49] = np.full(self.BOARD_WIDTH * self.BOARD_HEIGHT, np.tanh((200 - self.steps) / 16))
+        #b[50] = np.full(self.BOARD_WIDTH * self.BOARD_HEIGHT, np.tanh((200 - self.steps) / 128))
 
         return b.reshape(-1, self.BOARD_HEIGHT, self.BOARD_WIDTH)
 

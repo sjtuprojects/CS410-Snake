@@ -1,25 +1,12 @@
 import math
 import time
-from pathlib import Path
-import sys
-import os
-
-base_dir = Path(__file__).resolve().parent
-sys.path.append(str(base_dir))
 
 import numpy as np
-from numpy.core.fromnumeric import argmax
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
 
 EPS = 1e-8
-global count
-count = 0
 
 class MCTS():
-    def __init__(self, state, nnet, timeLimit=1.9, cpuct=1.0, stepLimit = 100):
-        self.state = state
+    def __init__(self, nnet, timeLimit=1.9, cpuct=1.0, stepLimit = 100):
         self.nnet = nnet
         self.cpuct = cpuct
         self.timeLimit = timeLimit
@@ -35,12 +22,8 @@ class MCTS():
 
     def getActionProb(self, state, temp=1):
         start_time = time.time()
-        search_count = 0
         while time.time() - start_time < self.timeLimit:
             self.search(state)
-            search_count += 1
-
-        #print(search_count)
 
         s = string_representation(state)
         i = state["controlled_snake_index"]
@@ -51,8 +34,6 @@ class MCTS():
         #print(counts)
 
         counts_sum = float(sum(counts))
-        if counts_sum == 0:
-            return greedy(state,i)
         probs = [x / counts_sum for x in counts]
         return probs
 
@@ -67,30 +48,20 @@ class MCTS():
             self.Es[s] = 0
             if dead_snakes or state["steps"] >= self.stepLimit:
                 # terminal node
-                self.Es[s] = evaluation(state, dead_snakes, 1)
+                self.Es[s] = evaluation(state, dead_snakes)
         if self.Es[s] != 0:
             return self.Es[s]
         
         if s not in self.Ns:
-            values = [0,0]
+            values = evaluation(state, []) #placeholder
 
             for i in range(2,8):
                 # leaf node
-                #get p, v from nnet
-                x = make_input(state,i-2)
-                with torch.no_grad():
-                    xt = torch.from_numpy(x).unsqueeze(0)
-                    p, v = self.nnet(xt)
-                    self.Ps[s, i] = np.squeeze(p)
-                    #print(self.Ps[s, i])
-
-                #values are average of 3 outputs
-                if i in [2,3,4]: values[0] += (v/3.0)
-                else: values[1] += (v/3.0)
-
+                #self.Ps[s], v = self.nnet.predict(state, i)
+                #placeholder
+                self.Ps[s, i] = greedy(state,i)
                 valids = get_legal_actions_single(state, i)
                 self.Ps[s, i] = [a*b for a,b in zip(self.Ps[s, i],valids)] # masking invalid moves 
-                #print(self.Ps[s, i])
                 sum_Ps_s = np.sum(self.Ps[s, i])
                 #print(valids, self.Ps[s, i])
                 if sum_Ps_s > 0:
@@ -146,89 +117,11 @@ class MCTS():
         self.Ns[s] += 1
         return values
 
-# Neural network for snake agent (1/2)
-class TorusConv2d(nn.Module):
-    def __init__(self, input_dim, output_dim, kernel_size, bn):
-        super().__init__()
-        self.edge_size = (kernel_size[0] // 2, kernel_size[1] // 2)
-        self.conv = nn.Conv2d(input_dim, output_dim, kernel_size=kernel_size)
-        self.bn = nn.BatchNorm2d(output_dim) if bn else None
-
-    def forward(self, x):
-        h = torch.cat([x[:,:,:,-self.edge_size[1]:], x, x[:,:,:,:self.edge_size[1]]], dim=3)
-        h = torch.cat([h[:,:,-self.edge_size[0]:], h, h[:,:,:self.edge_size[0]]], dim=2)
-        h = self.conv(h)
-        h = self.bn(h) if self.bn is not None else h
-        return h
-
-# Neural network for snake agent (2/2)
-class SnakeNet(nn.Module):
-    def __init__(self):
-        super().__init__()
-        layers, filters = 12, 32
-
-        self.conv0 = TorusConv2d(25, filters, (3, 3), True)
-        self.blocks = nn.ModuleList([TorusConv2d(filters, filters, (3, 3), True) for _ in range(layers)])
-        self.head_p = nn.Linear(filters, 4, bias=False)
-        self.head_v = nn.Linear(filters * 2, 1, bias=False)
-
-    def forward(self, x, _=None):
-        h = F.relu_(self.conv0(x))
-        for block in self.blocks:
-            h = F.relu_(h + block(h))
-        h_head = (h * x[:,:1]).view(h.size(0), h.size(1), -1).sum(-1)
-        h_avg = h.view(h.size(0), h.size(1), -1).mean(-1)
-        p = self.head_p(h_head)
-        v = torch.tanh(self.head_v(torch.cat([h_head, h_avg], 1)))
-
-        return (p,v)
-
-def make_input(state, player):
-        NUM_AGENTS = 6
-        BOARD_WIDTH = state["board_width"]
-        BOARD_HEIGHT = state["board_height"]
-
-        b = np.zeros((NUM_AGENTS * 4 + 1, BOARD_WIDTH * BOARD_HEIGHT), dtype=np.float32)
-
-        state_copy = state.copy()
-        snakes_positions = [state_copy[i+2] for i in range(NUM_AGENTS)]
-
-        for p, snake in enumerate(snakes_positions):
-            # Head position
-            for pos in snake[:1]:
-                b[0 + (p - player) % NUM_AGENTS, pos[0] * BOARD_WIDTH + pos[1]] = 1
-            # Tip position
-            for pos in snake[-1:]:
-                b[4 + (p - player) % NUM_AGENTS, pos[0] * BOARD_WIDTH + pos[1]] = 1
-            # Whole position
-            for pos in snake:
-                b[8 + (p - player) % NUM_AGENTS, pos[0] * BOARD_WIDTH + pos[1]] = 1
-            # Previous head position
-            for pos in snake[1:2]:
-                b[12 + (p - player) % NUM_AGENTS, pos[0] * BOARD_WIDTH + pos[1]] = 1
-        # Food
-        food_positions = state_copy[1]
-        for pos in food_positions:
-            b[16, pos[0] * BOARD_WIDTH + pos[1]] = 1
-
-        return b.reshape(-1, BOARD_HEIGHT, BOARD_WIDTH)
-
-model = SnakeNet()
-model_path = os.path.dirname(os.path.abspath(__file__)) + '/latest.pth'
-model.load_state_dict(torch.load(model_path))
-model.eval()
+tree = MCTS(None, 0.7)
 
 def my_controller(observation, action_space, is_act_continuous=False):   
     
-    st = time.time()     
     state = observation.copy()
-    global count
-    #print(state["controlled_snake_index"],int(count/3))
-    count += 1
-
-    print((time.time() - st)*1000)
-
-    tree = MCTS(state, model, 0.5)
 
     probs = tree.getActionProb(state)
     #print(probs)
@@ -274,8 +167,9 @@ def are_snakes_dead(state):
     return dead_snakes
 
 #return evaluation of the state in range [-1,+1]
-def evaluation(state, dead_snakes, score_factor=0.25):
+def evaluation(state, dead_snakes):
     #a parameter. The higher it is, the more sensitive the evaluation is to length difference
+    score_factor = 0.25
     score = 0
     for i in range(2,5):
         if not i in dead_snakes:

@@ -1,0 +1,17 @@
+{
+  "ExpandedNodes": [
+    "",
+    "\\agent",
+    "\\agent\\alphabeta",
+    "\\agent\\alphabeta\\__pycache__",
+    "\\agent\\MCTS",
+    "\\agent\\NNtest",
+    "\\rl_trainer",
+    "\\rl_trainer\\handyrl",
+    "\\rl_trainer\\handyrl\\handyrl",
+    "\\rl_trainer\\handyrl\\handyrl\\envs",
+    "\\utils"
+  ],
+  "SelectedNode": "\\rl_trainer\\handyrl\\handyrl\\train.py",
+  "PreviewInSolutionExplorer": false
+}

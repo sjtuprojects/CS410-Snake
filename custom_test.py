@@ -10,7 +10,7 @@ from env.chooseenv import make
 from utils.get_logger import get_logger
 from env.obs_interfaces.observation import obs_type
 
-WORKER_COUNT = 32
+WORKER_COUNT = 6
 
 class NpEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -183,6 +183,8 @@ if __name__ == "__main__":
     total_score = [0,0]
     wins = 0
 
+    st = time.time()
+
     executor = futures.ProcessPoolExecutor(WORKER_COUNT)
     result = [executor.submit(run,i,game, env_type, multi_part_agent_ids, actions_space, policy_list, render_mode) for i in range(num_rounds)]
     futures.wait(result)
@@ -198,7 +200,7 @@ if __name__ == "__main__":
 
     print("Scores =", total_score, " Winrate =", winrate, f"({wins}/{num_rounds})")
 
-
+    # winrate = 0.0
     # for i in range(num_rounds):
     #     game = make(env_type)
     #     info = run_game(game, env_type, multi_part_agent_ids, actions_space, policy_list, render_mode)
@@ -218,5 +220,7 @@ if __name__ == "__main__":
 
     # winrate /= num_rounds
     # print("total score (my_ai, opponent): ", total_score, " winrate =", winrate)
+
+    print("Time taken =", time.time() - st)
 
 
