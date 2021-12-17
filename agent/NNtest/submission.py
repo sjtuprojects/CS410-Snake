@@ -57,17 +57,17 @@ def make_input(state, player):
                 b[0 + (p - player) % NUM_AGENTS, pos[0] * BOARD_WIDTH + pos[1]] = 1
             # Tip position
             for pos in snake[-1:]:
-                b[4 + (p - player) % NUM_AGENTS, pos[0] * BOARD_WIDTH + pos[1]] = 1
+                b[6 + (p - player) % NUM_AGENTS, pos[0] * BOARD_WIDTH + pos[1]] = 1
             # Whole position
             for pos in snake:
-                b[8 + (p - player) % NUM_AGENTS, pos[0] * BOARD_WIDTH + pos[1]] = 1
+                b[12 + (p - player) % NUM_AGENTS, pos[0] * BOARD_WIDTH + pos[1]] = 1
             # Previous head position
             for pos in snake[1:2]:
-                b[12 + (p - player) % NUM_AGENTS, pos[0] * BOARD_WIDTH + pos[1]] = 1
+                b[18 + (p - player) % NUM_AGENTS, pos[0] * BOARD_WIDTH + pos[1]] = 1
         # Food
         food_positions = state_copy[1]
         for pos in food_positions:
-            b[16, pos[0] * BOARD_WIDTH + pos[1]] = 1
+            b[24, pos[0] * BOARD_WIDTH + pos[1]] = 1
 
         return b.reshape(-1, BOARD_HEIGHT, BOARD_WIDTH)
 
