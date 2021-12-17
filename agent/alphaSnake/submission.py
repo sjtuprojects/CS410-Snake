@@ -1,5 +1,11 @@
 import math
 import time
+from pathlib import Path
+import sys
+import os
+
+base_dir = Path(__file__).resolve().parent
+sys.path.append(str(base_dir))
 
 import numpy as np
 from numpy.core.fromnumeric import argmax
@@ -8,16 +14,17 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 EPS = 1e-8
+global count
+count = 0
 
 class MCTS():
-    def __init__(self, state, nnet, timeLimit=1.9, cpuct=1.0, stepLimit = 100, useTemp = False):
+    def __init__(self, state, nnet, timeLimit=1.9, cpuct=1.0, stepLimit = 100):
         self.state = state
         self.nnet = nnet
         self.cpuct = cpuct
         self.timeLimit = timeLimit
         #print(timeLimit)
         self.stepLimit = stepLimit
-        self.useTemp = useTemp  #flag to use temp or not
         self.Qsa = {}  # stores Q values for s,a (as defined in the paper)
         self.Nsa = {}  # stores #times edge s,a was visited
         self.Ns = {}  # stores #times board s was visited
@@ -42,16 +49,6 @@ class MCTS():
             for a in range(get_action_size())
         ]
         #print(counts)
-
-        if self.useTemp:
-            if temp == 0:
-                bestAs = np.array(np.argwhere(counts == np.max(counts))).flatten()
-                bestA = np.random.choice(bestAs)
-                probs = [0] * len(counts)
-                probs[bestA] = 1
-                return probs
-
-            counts = [x ** (1. / temp) for x in counts]
 
         counts_sum = float(sum(counts))
         if counts_sum == 0:
@@ -216,16 +213,22 @@ def make_input(state, player):
 
         return b.reshape(-1, BOARD_HEIGHT, BOARD_WIDTH)
 
+model = SnakeNet()
+model_path = os.path.dirname(os.path.abspath(__file__)) + '/latest.pth'
+model.load_state_dict(torch.load(model_path))
+model.eval()
+
 def my_controller(observation, action_space, is_act_continuous=False):   
     
+    #st = time.time()     
     state = observation.copy()
+    #global count
+    #print(state["controlled_snake_index"],int(count/3))
+    #count += 1
 
-    model = SnakeNet()
-    model_path = "./models/latest.pth"
-    model.load_state_dict(torch.load(model_path))
-    model.eval()
+    #print((time.time() - st)*1000)
 
-    tree = MCTS(state, model, 0.1)
+    tree = MCTS(state, model, 0.5)
 
     probs = tree.getActionProb(state)
     #print(probs)
