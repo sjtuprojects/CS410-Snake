@@ -41,74 +41,74 @@ class SnakeNet(nn.Module):
 
         return {'policy': p, 'value': v}
 
-    def get_snake_directions(self, snake):
-        directions = {p: [] for p in [0, 1, 2, 3]}
+def get_snake_directions(self, snake):
+    directions = {p: [] for p in [0, 1, 2, 3]}
 
-        prev_pos = snake[:1][0]
+    prev_pos = snake[:1][0]
 
+    for pos in snake:
+        if pos[0] - prev_pos[0] == -1: # FACE UP
+            directions[0].append(pos)
+        elif pos[0] - prev_pos[0] == 1: # FACE DOWN
+            directions[1].append(pos)
+        elif pos[1] - prev_pos[1] == -1: # FACE LEFT
+            directions[2].append(pos)
+        elif pos[1] - prev_pos[1] == 1: # FACE RIGHT
+            directions[3].append(pos)
+        prev_pos = pos
+
+    return directions
+
+def make_input(state, player):
+    NUM_AGENTS = 6
+    BOARD_WIDTH = state["board_width"]
+    BOARD_HEIGHT = state["board_height"]
+
+    b = np.zeros((NUM_AGENTS * 4 + 1, BOARD_WIDTH * BOARD_HEIGHT), dtype=np.float32)
+
+    state_copy = state.copy()
+    snakes_positions = [state_copy[i+2] for i in range(NUM_AGENTS)]
+
+    for p, snake in enumerate(snakes_positions):
+        # Head position
+        for pos in snake[:1]:
+            b[0 + (p - player) % NUM_AGENTS, pos[0] * BOARD_WIDTH + pos[1]] = 1
+        # Tip position
+        for pos in snake[-1:]:
+            b[6 + (p - player) % NUM_AGENTS, pos[0] * BOARD_WIDTH + pos[1]] = 1
+        # Whole position
         for pos in snake:
-            if pos[0] - prev_pos[0] == -1: # FACE UP
-                directions[0].append(pos)
-            elif pos[0] - prev_pos[0] == 1: # FACE DOWN
-                directions[1].append(pos)
-            elif pos[1] - prev_pos[1] == -1: # FACE LEFT
-                directions[2].append(pos)
-            elif pos[1] - prev_pos[1] == 1: # FACE RIGHT
-                directions[3].append(pos)
-            prev_pos = pos
+            b[12 + (p - player) % NUM_AGENTS, pos[0] * BOARD_WIDTH + pos[1]] = 1
 
-        return directions
+        directions = self.get_snake_directions(snake)
 
-    def make_input(state, player):
-        NUM_AGENTS = 6
-        BOARD_WIDTH = state["board_width"]
-        BOARD_HEIGHT = state["board_height"]
+        # Direction Up
+        for pos in directions[0]:
+            b[18 + (p - player) % self.NUM_AGENTS, pos[0] * self.BOARD_WIDTH + pos[1]] = 1
+        # Direction Down
+        for pos in directions[1]:
+            b[24 + (p - player) % self.NUM_AGENTS, pos[0] * self.BOARD_WIDTH + pos[1]] = 1
+        # Direction Left
+        for pos in directions[2]:
+            b[30 + (p - player) % self.NUM_AGENTS, pos[0] * self.BOARD_WIDTH + pos[1]] = 1
+        # Direction Right
+        for pos in directions[3]:
+            b[36 + (p - player) % self.NUM_AGENTS, pos[0] * self.BOARD_WIDTH + pos[1]] = 1
 
-        b = np.zeros((NUM_AGENTS * 4 + 1, BOARD_WIDTH * BOARD_HEIGHT), dtype=np.float32)
-
-        state_copy = state.copy()
-        snakes_positions = [state_copy[i+2] for i in range(NUM_AGENTS)]
-
-        for p, snake in enumerate(snakes_positions):
-            # Head position
+    # Previous head position
+    if len(self.state_list) > 1:
+        state_prev_copy = self.state_list[-2].copy()
+        snakes_prev = [state_prev_copy[i+2] for i in self.players()]
+        for p, snake in enumerate(snakes_prev):
             for pos in snake[:1]:
-                b[0 + (p - player) % NUM_AGENTS, pos[0] * BOARD_WIDTH + pos[1]] = 1
-            # Tip position
-            for pos in snake[-1:]:
-                b[6 + (p - player) % NUM_AGENTS, pos[0] * BOARD_WIDTH + pos[1]] = 1
-            # Whole position
-            for pos in snake:
-                b[12 + (p - player) % NUM_AGENTS, pos[0] * BOARD_WIDTH + pos[1]] = 1
+                b[42 + (p - player) % self.NUM_AGENTS, pos[0] * self.BOARD_WIDTH + pos[1]] = 1
 
-            directions = self.get_snake_directions(snake)
+    # Food
+    food_positions = state_copy[1]
+    for pos in food_positions:
+        b[48, pos[0] * BOARD_WIDTH + pos[1]] = 1
 
-            # Direction Up
-            for pos in directions[0]:
-                b[18 + (p - player) % self.NUM_AGENTS, pos[0] * self.BOARD_WIDTH + pos[1]] = 1
-            # Direction Down
-            for pos in directions[1]:
-                b[24 + (p - player) % self.NUM_AGENTS, pos[0] * self.BOARD_WIDTH + pos[1]] = 1
-            # Direction Left
-            for pos in directions[2]:
-                b[30 + (p - player) % self.NUM_AGENTS, pos[0] * self.BOARD_WIDTH + pos[1]] = 1
-            # Direction Right
-            for pos in directions[3]:
-                b[36 + (p - player) % self.NUM_AGENTS, pos[0] * self.BOARD_WIDTH + pos[1]] = 1
-
-        # Previous head position
-        if len(self.state_list) > 1:
-            state_prev_copy = self.state_list[-2].copy()
-            snakes_prev = [state_prev_copy[i+2] for i in self.players()]
-            for p, snake in enumerate(snakes_prev):
-                for pos in snake[:1]:
-                    b[42 + (p - player) % self.NUM_AGENTS, pos[0] * self.BOARD_WIDTH + pos[1]] = 1
-
-        # Food
-        food_positions = state_copy[1]
-        for pos in food_positions:
-            b[48, pos[0] * BOARD_WIDTH + pos[1]] = 1
-
-        return b.reshape(-1, BOARD_HEIGHT, BOARD_WIDTH)
+    return b.reshape(-1, BOARD_HEIGHT, BOARD_WIDTH)
 
 def my_controller(observation, action_space, is_act_continuous=False):   
     obs = observation.copy()
