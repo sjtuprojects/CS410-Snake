@@ -25,7 +25,7 @@ class SnakeNet(nn.Module):
         super().__init__()
         layers, filters = 12, 32
 
-        self.conv0 = TorusConv2d(25, filters, (3, 3), True)
+        self.conv0 = TorusConv2d(49, filters, (3, 3), True)
         self.blocks = nn.ModuleList([TorusConv2d(filters, filters, (3, 3), True) for _ in range(layers)])
         self.head_p = nn.Linear(filters, 4, bias=False)
         self.head_v = nn.Linear(filters * 2, 1, bias=False)
@@ -41,7 +41,25 @@ class SnakeNet(nn.Module):
 
         return {'policy': p, 'value': v}
 
-def make_input(state, player):
+    def get_snake_directions(self, snake):
+        directions = {p: [] for p in [0, 1, 2, 3]}
+
+        prev_pos = snake[:1][0]
+
+        for pos in snake:
+            if pos[0] - prev_pos[0] == -1: # FACE UP
+                directions[0].append(pos)
+            elif pos[0] - prev_pos[0] == 1: # FACE DOWN
+                directions[1].append(pos)
+            elif pos[1] - prev_pos[1] == -1: # FACE LEFT
+                directions[2].append(pos)
+            elif pos[1] - prev_pos[1] == 1: # FACE RIGHT
+                directions[3].append(pos)
+            prev_pos = pos
+
+        return directions
+
+    def make_input(state, player):
         NUM_AGENTS = 6
         BOARD_WIDTH = state["board_width"]
         BOARD_HEIGHT = state["board_height"]
@@ -61,13 +79,34 @@ def make_input(state, player):
             # Whole position
             for pos in snake:
                 b[12 + (p - player) % NUM_AGENTS, pos[0] * BOARD_WIDTH + pos[1]] = 1
-            # Previous head position
-            for pos in snake[1:2]:
-                b[18 + (p - player) % NUM_AGENTS, pos[0] * BOARD_WIDTH + pos[1]] = 1
+
+            directions = self.get_snake_directions(snake)
+
+            # Direction Up
+            for pos in directions[0]:
+                b[18 + (p - player) % self.NUM_AGENTS, pos[0] * self.BOARD_WIDTH + pos[1]] = 1
+            # Direction Down
+            for pos in directions[1]:
+                b[24 + (p - player) % self.NUM_AGENTS, pos[0] * self.BOARD_WIDTH + pos[1]] = 1
+            # Direction Left
+            for pos in directions[2]:
+                b[30 + (p - player) % self.NUM_AGENTS, pos[0] * self.BOARD_WIDTH + pos[1]] = 1
+            # Direction Right
+            for pos in directions[3]:
+                b[36 + (p - player) % self.NUM_AGENTS, pos[0] * self.BOARD_WIDTH + pos[1]] = 1
+
+        # Previous head position
+        if len(self.state_list) > 1:
+            state_prev_copy = self.state_list[-2].copy()
+            snakes_prev = [state_prev_copy[i+2] for i in self.players()]
+            for p, snake in enumerate(snakes_prev):
+                for pos in snake[:1]:
+                    b[42 + (p - player) % self.NUM_AGENTS, pos[0] * self.BOARD_WIDTH + pos[1]] = 1
+
         # Food
         food_positions = state_copy[1]
         for pos in food_positions:
-            b[24, pos[0] * BOARD_WIDTH + pos[1]] = 1
+            b[48, pos[0] * BOARD_WIDTH + pos[1]] = 1
 
         return b.reshape(-1, BOARD_HEIGHT, BOARD_WIDTH)
 
