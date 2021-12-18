@@ -41,7 +41,7 @@ class SnakeNet(nn.Module):
 
         return {'policy': p, 'value': v}
 
-def get_snake_directions(self, snake):
+def get_snake_directions(snake):
     directions = {p: [] for p in [0, 1, 2, 3]}
 
     prev_pos = snake[:1][0]
@@ -64,7 +64,7 @@ def make_input(state, player):
     BOARD_WIDTH = state["board_width"]
     BOARD_HEIGHT = state["board_height"]
 
-    b = np.zeros((NUM_AGENTS * 4 + 1, BOARD_WIDTH * BOARD_HEIGHT), dtype=np.float32)
+    b = np.zeros((NUM_AGENTS * 8 + 1, BOARD_WIDTH * BOARD_HEIGHT), dtype=np.float32)
 
     state_copy = state.copy()
     snakes_positions = [state_copy[i+2] for i in range(NUM_AGENTS)]
@@ -80,28 +80,24 @@ def make_input(state, player):
         for pos in snake:
             b[12 + (p - player) % NUM_AGENTS, pos[0] * BOARD_WIDTH + pos[1]] = 1
 
-        directions = self.get_snake_directions(snake)
+        directions = get_snake_directions(snake)
 
         # Direction Up
         for pos in directions[0]:
-            b[18 + (p - player) % self.NUM_AGENTS, pos[0] * self.BOARD_WIDTH + pos[1]] = 1
+            b[18 + (p - player) % NUM_AGENTS, pos[0] * BOARD_WIDTH + pos[1]] = 1
         # Direction Down
         for pos in directions[1]:
-            b[24 + (p - player) % self.NUM_AGENTS, pos[0] * self.BOARD_WIDTH + pos[1]] = 1
+            b[24 + (p - player) % NUM_AGENTS, pos[0] * BOARD_WIDTH + pos[1]] = 1
         # Direction Left
         for pos in directions[2]:
-            b[30 + (p - player) % self.NUM_AGENTS, pos[0] * self.BOARD_WIDTH + pos[1]] = 1
+            b[30 + (p - player) % NUM_AGENTS, pos[0] * BOARD_WIDTH + pos[1]] = 1
         # Direction Right
         for pos in directions[3]:
-            b[36 + (p - player) % self.NUM_AGENTS, pos[0] * self.BOARD_WIDTH + pos[1]] = 1
+            b[36 + (p - player) % NUM_AGENTS, pos[0] * BOARD_WIDTH + pos[1]] = 1
 
-    # Previous head position
-    if len(self.state_list) > 1:
-        state_prev_copy = self.state_list[-2].copy()
-        snakes_prev = [state_prev_copy[i+2] for i in self.players()]
-        for p, snake in enumerate(snakes_prev):
-            for pos in snake[:1]:
-                b[42 + (p - player) % self.NUM_AGENTS, pos[0] * self.BOARD_WIDTH + pos[1]] = 1
+        # Previous head position
+        for pos in snake[1:2]:
+            b[42 + (p - player) % NUM_AGENTS, pos[0] * BOARD_WIDTH + pos[1]] = 1
 
     # Food
     food_positions = state_copy[1]
