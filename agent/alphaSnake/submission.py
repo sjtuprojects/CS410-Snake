@@ -252,8 +252,6 @@ model_path = os.path.dirname(os.path.abspath(__file__)) + '/latest.pth'
 model.load_state_dict(torch.load(model_path))
 model.eval()
 
-tree = MCTS(model, 0.5)
-
 def my_controller(observation, action_space, is_act_continuous=False):   
     
     #st = time.time()     
@@ -264,7 +262,7 @@ def my_controller(observation, action_space, is_act_continuous=False):
 
     #print((time.time() - st)*1000)
 
-    
+    tree = MCTS(model, 0.5)
 
     probs = tree.getActionProb(state)
     #print(probs)
