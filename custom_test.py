@@ -10,7 +10,7 @@ from env.chooseenv import make
 from utils.get_logger import get_logger
 from env.obs_interfaces.observation import obs_type
 
-WORKER_COUNT = 32
+WORKER_COUNT = 6
 
 class NpEncoder(json.JSONEncoder):
     def default(self, obj):

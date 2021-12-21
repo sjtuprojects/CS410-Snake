@@ -6,8 +6,7 @@ import numpy as np
 EPS = 1e-8
 
 class MCTS():
-    def __init__(self, state, nnet, timeLimit=1.9, cpuct=1.0, stepLimit = 100, useTemp = False):
-        self.state = state
+    def __init__(self, nnet, timeLimit=1.9, cpuct=1.0, stepLimit = 100, useTemp = False):
         self.nnet = nnet
         self.cpuct = cpuct
         self.timeLimit = timeLimit
@@ -129,11 +128,11 @@ class MCTS():
         self.Ns[s] += 1
         return values
 
+tree = MCTS(None, 0.1)
+
 def my_controller(observation, action_space, is_act_continuous=False):   
     #ts = time.time()
     state = observation.copy()
-
-    tree = MCTS(state, None, 0.1)
 
     probs = tree.getActionProb(state)
     #print(probs)

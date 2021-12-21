@@ -17,8 +17,8 @@ train_args:
     update_episodes: 200
     batch_size: 64
     minimum_episodes: 400
-    maximum_episodes: 100000
-    epochs: 2
+    maximum_episodes: 20000
+    epochs: -1
     num_batchers: 2
     eval_rate: 0.1
     worker:
@@ -33,9 +33,10 @@ train_args:
             - GreedyAgent
             #- RLAgent
     seed: 0
-    restart_epoch: 0
-    save_no_episodes: 200
+    restart_epoch: 670
+    save_no_episodes: 20000
     restart_with_saved_epochs: False
+
 worker_args:
     server_address: '127.0.0.1'
     num_parallel: 6

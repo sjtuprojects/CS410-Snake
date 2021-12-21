@@ -140,7 +140,7 @@ def make_input_o(state, player):
     return b.reshape(-1, BOARD_HEIGHT, BOARD_WIDTH)
 
 def my_controller(observation, action_space, is_act_continuous=False):   
-    ts = time.time()
+    #ts = time.time()
 
     obs = observation.copy()
 
@@ -168,6 +168,6 @@ def my_controller(observation, action_space, is_act_continuous=False):
     if action_index == 2: action = [[0,0,1,0]]
     if action_index == 3: action = [[0,0,0,1]]
 
-    print(time.time() - ts)
+    #print(time.time() - ts)
 
     return action
