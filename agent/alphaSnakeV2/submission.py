@@ -102,7 +102,7 @@ class MCTS():
                 #     #no valid moves
                 #     self.Ps[s, i] = [1 / len(self.Ps[s, i])]*get_action_size()
                 self.Ps[s, i] = torch.sigmoid(self.Ps[s, i])
-                self.Ps[s, i] /= (torch.sum() + EPS)
+                self.Ps[s, i] /= (torch.sum(self.Ps[s, i]) + EPS)
 
                 #self.Vs[s, i] = valids
                 self.Ns[s] = 0
