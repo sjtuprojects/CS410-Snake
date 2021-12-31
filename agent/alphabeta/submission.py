@@ -195,7 +195,7 @@ def alphaBeta(obs, team, enemy):
         return best_value
 
     m = max_value(obs, 2, -99999, 99999)
-    print(m)
+    #print(m)
     return m[0]
             
 

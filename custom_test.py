@@ -149,6 +149,7 @@ def get_valid_agents():
     return [f for f in os.listdir(dir_path) if f != "__pycache__"]
 
 def run(i,game, env_type, multi_part_agent_ids, actions_space, policy_list, render_mode):
+    game = make(env_type)
     info = run_game(game, env_type, multi_part_agent_ids, actions_space, policy_list, render_mode)
     scores = info["winner_information"]
     teamA = scores[0] + scores[1] + scores[2]
@@ -183,12 +184,18 @@ if __name__ == "__main__":
     total_score = [0,0]
     wins = 0
 
-    executor = futures.ProcessPoolExecutor(WORKER_COUNT)
-    result = [executor.submit(run,i,game, env_type, multi_part_agent_ids, actions_space, policy_list, render_mode) for i in range(num_rounds)]
-    futures.wait(result)
+    # executor = futures.ProcessPoolExecutor(WORKER_COUNT)
+    # result = [executor.submit(run,i,game, env_type, multi_part_agent_ids, actions_space, policy_list, render_mode) for i in range(num_rounds)]
+    # futures.wait(result)
+
+    result = []
+    for i in range(num_rounds):
+        res = run(i,game, env_type, multi_part_agent_ids, actions_space, policy_list, render_mode)
+        result.append(res)
 
     for res in result:
-        scoreA, scoreB, WL = res.result()
+        #scoreA, scoreB, WL = res.result()
+        scoreA, scoreB, WL = res
         total_score[0] += scoreA
         total_score[1] += scoreB
         if WL == "win": wins += 1

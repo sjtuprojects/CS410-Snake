@@ -5,6 +5,13 @@ import torch.nn as nn
 import torch.nn.functional as F
 import time
 
+from pathlib import Path
+import sys
+import os
+
+base_dir = Path(__file__).resolve().parent
+sys.path.append(str(base_dir))
+
 # Neural network for snake agent (1/2)
 class TorusConv2d(nn.Module):
     def __init__(self, input_dim, output_dim, kernel_size, bn):
@@ -131,30 +138,36 @@ def make_input_o(state, player):
     BOARD_WIDTH = state["board_width"]
     BOARD_HEIGHT = state["board_height"]
 
-        b = np.zeros((NUM_AGENTS * 4 + 1, BOARD_WIDTH * BOARD_HEIGHT), dtype=np.float32)
+    b = np.zeros((NUM_AGENTS * 4 + 1, BOARD_WIDTH * BOARD_HEIGHT), dtype=np.float32)
 
     state_copy = state.copy()
     snakes_positions = [state_copy[i+2] for i in range(NUM_AGENTS)]
 
-        for p, snake in enumerate(snakes_positions):
-            # Head position
-            for pos in snake[:1]:
-                b[0 + (p - player) % NUM_AGENTS, pos[0] * BOARD_WIDTH + pos[1]] = 1
-            # Tip position
-            for pos in snake[-1:]:
-                b[6 + (p - player) % NUM_AGENTS, pos[0] * BOARD_WIDTH + pos[1]] = 1
-            # Whole position
-            for pos in snake:
-                b[12 + (p - player) % NUM_AGENTS, pos[0] * BOARD_WIDTH + pos[1]] = 1
-            # Previous head position
-            for pos in snake[1:2]:
-                b[18 + (p - player) % NUM_AGENTS, pos[0] * BOARD_WIDTH + pos[1]] = 1
-        # Food
-        food_positions = state_copy[1]
-        for pos in food_positions:
-            b[24, pos[0] * BOARD_WIDTH + pos[1]] = 1
+    for p, snake in enumerate(snakes_positions):
+        # Head position
+        for pos in snake[:1]:
+            b[0 + (p - player) % NUM_AGENTS, pos[0] * BOARD_WIDTH + pos[1]] = 1
+        # Tip position
+        for pos in snake[-1:]:
+            b[6 + (p - player) % NUM_AGENTS, pos[0] * BOARD_WIDTH + pos[1]] = 1
+        # Whole position
+        for pos in snake:
+            b[12 + (p - player) % NUM_AGENTS, pos[0] * BOARD_WIDTH + pos[1]] = 1
+        # Previous head position
+        for pos in snake[1:2]:
+            b[18 + (p - player) % NUM_AGENTS, pos[0] * BOARD_WIDTH + pos[1]] = 1
+    # Food
+    food_positions = state_copy[1]
+    for pos in food_positions:
+        b[24, pos[0] * BOARD_WIDTH + pos[1]] = 1
 
     return b.reshape(-1, BOARD_HEIGHT, BOARD_WIDTH)
+
+
+model = SnakeNet()
+model_path = os.path.dirname(os.path.abspath(__file__)) + '/latest.pth'
+model.load_state_dict(torch.load(model_path))
+model.eval()
 
 def my_controller(observation, action_space, is_act_continuous=False):   
     #ts = time.time()
@@ -163,10 +176,6 @@ def my_controller(observation, action_space, is_act_continuous=False):
 
     index = obs["controlled_snake_index"]
 
-    model = SnakeNet()
-    model_path = "./models/latest.pth"
-    model.load_state_dict(torch.load(model_path))
-    model.eval()
     x = make_input(obs, index-2)
 
     with torch.no_grad():

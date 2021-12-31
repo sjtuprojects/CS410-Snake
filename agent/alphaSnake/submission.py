@@ -14,11 +14,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 EPS = 1e-8
-global count
-count = 0
 
 class MCTS():
-    def __init__(self, nnet, timeLimit=1.9, cpuct=1.0, stepLimit = 100):
+    def __init__(self, nnet, timeLimit=1.9, cpuct=1.0, stepLimit = 40):
         self.nnet = nnet
         self.cpuct = cpuct
         self.timeLimit = timeLimit
@@ -30,7 +28,7 @@ class MCTS():
         self.Ps = {}  # stores initial policy (returned by neural net)
 
         self.Es = {}  # stores game.getGameEnded ended for board s
-        self.Vs = {}  # stores game.getValidMoves for board s
+        #self.Vs = {}  # stores game.getValidMoves for board s
 
     def getActionProb(self, state, temp=1):
         start_time = time.time()
@@ -87,24 +85,26 @@ class MCTS():
                 if i in [2,3,4]: values[0] += (v/3.0)
                 else: values[1] += (v/3.0)
 
-                valids = get_legal_actions_single(state, i)
-                self.Ps[s, i] = [a*b for a,b in zip(self.Ps[s, i],valids)] # masking invalid moves 
+                #valids = get_legal_actions_single(state, i)
+                #self.Ps[s, i] = [a*b for a,b in zip(self.Ps[s, i],valids)] # masking invalid moves 
                 #print(self.Ps[s, i])
-                sum_Ps_s = np.sum(self.Ps[s, i])
+                #sum_Ps_s = torch.sum(self.Ps[s, i])
                 #print(valids, self.Ps[s, i])
-                if sum_Ps_s > 0:
-                    self.Ps[s, i] /= sum_Ps_s  # renormalize
-                else:
-                    #no valid moves
-                    self.Ps[s, i] = [1 / len(self.Ps[s, i])]*get_action_size()
+                # if sum_Ps_s > 0:
+                #     #self.Ps[s, i] /= sum_Ps_s  # renormalize
+                # else:
+                #     #no valid moves
+                #     self.Ps[s, i] = [1 / len(self.Ps[s, i])]*get_action_size()
+                self.Ps[s, i] = torch.sigmoid(self.Ps[s, i])
 
-                self.Vs[s, i] = valids
+                #self.Vs[s, i] = valids
                 self.Ns[s] = 0
             return values
 
         best_acts = [None] * 6
         for i in range(2,8):
-            valids = self.Vs[s, i]
+            #valids = self.Vs[s, i]
+            valids = [1,1,1,1]
             cur_best = -float('inf')
             best_act = 0
 
