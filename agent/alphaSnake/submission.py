@@ -96,6 +96,7 @@ class MCTS():
                 #     #no valid moves
                 #     self.Ps[s, i] = [1 / len(self.Ps[s, i])]*get_action_size()
                 self.Ps[s, i] = torch.sigmoid(self.Ps[s, i])
+                self.Ps[s, i] /= (torch.sum() + EPS)
 
                 #self.Vs[s, i] = valids
                 self.Ns[s] = 0
@@ -104,22 +105,20 @@ class MCTS():
         best_acts = [None] * 6
         for i in range(2,8):
             #valids = self.Vs[s, i]
-            valids = [1,1,1,1]
             cur_best = -float('inf')
             best_act = 0
 
             # pick the action with the highest upper confidence bound
             for a in range(get_action_size()):
-                if valids[a]:
-                    if (s, i, a) in self.Qsa:
-                        u = self.Qsa[(s, i, a)] + self.cpuct * self.Ps[s, i][a] * math.sqrt(self.Ns[s]) / (
-                                1 + self.Nsa[(s, i, a)])
-                    else:
-                        u = self.cpuct * self.Ps[s,i][a] * math.sqrt(self.Ns[s] + EPS)  # Q = 0 ?
+                if (s, i, a) in self.Qsa:
+                    u = self.Qsa[(s, i, a)] + self.cpuct * self.Ps[s, i][a] * math.sqrt(self.Ns[s]) / (
+                            1 + self.Nsa[(s, i, a)])
+                else:
+                    u = self.cpuct * self.Ps[s,i][a] * math.sqrt(self.Ns[s] + EPS)  # Q = 0 ?
 
-                    if u > cur_best:
-                        cur_best = u
-                        best_act = a
+                if u > cur_best:
+                    cur_best = u
+                    best_act = a
             
             best_acts[i-2] = best_act
 

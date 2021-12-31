@@ -91,18 +91,20 @@ class MCTS():
                 if i in [2,3,4]: values[0] += (v/3.0)
                 else: values[1] += (v/3.0)
 
-                valids = get_legal_actions_single(state, i)
-                self.Ps[s, i] = [a*b for a,b in zip(self.Ps[s, i],valids)] # masking invalid moves 
+                #valids = get_legal_actions_single(state, i)
+                #self.Ps[s, i] = [a*b for a,b in zip(self.Ps[s, i],valids)] # masking invalid moves 
                 #print(self.Ps[s, i])
-                sum_Ps_s = np.sum(self.Ps[s, i])
+                #sum_Ps_s = np.sum(self.Ps[s, i])
                 #print(valids, self.Ps[s, i])
-                if sum_Ps_s > 0:
-                    self.Ps[s, i] /= sum_Ps_s  # renormalize
-                else:
-                    #no valid moves
-                    self.Ps[s, i] = [1 / len(self.Ps[s, i])]*get_action_size()
+                # if sum_Ps_s > 0:
+                #     self.Ps[s, i] /= sum_Ps_s  # renormalize
+                # else:
+                #     #no valid moves
+                #     self.Ps[s, i] = [1 / len(self.Ps[s, i])]*get_action_size()
+                self.Ps[s, i] = torch.sigmoid(self.Ps[s, i])
+                self.Ps[s, i] /= (torch.sum() + EPS)
 
-                self.Vs[s, i] = valids
+                #self.Vs[s, i] = valids
                 self.Ns[s] = 0
 
             #print("time:",time.time()-sTime)
@@ -110,22 +112,20 @@ class MCTS():
 
         best_acts = [None] * 6
         for i in range(2,8):
-            valids = self.Vs[s, i]
             cur_best = -float('inf')
             best_act = 0
 
             # pick the action with the highest upper confidence bound
             for a in range(get_action_size()):
-                if valids[a]:
-                    if (s, i, a) in self.Qsa:
-                        u = self.Qsa[(s, i, a)] + self.cpuct * self.Ps[s, i][a] * math.sqrt(self.Ns[s]) / (
-                                1 + self.Nsa[(s, i, a)])
-                    else:
-                        u = self.cpuct * self.Ps[s,i][a] * math.sqrt(self.Ns[s] + EPS)  # Q = 0 ?
+                if (s, i, a) in self.Qsa:
+                    u = self.Qsa[(s, i, a)] + self.cpuct * self.Ps[s, i][a] * math.sqrt(self.Ns[s]) / (
+                            1 + self.Nsa[(s, i, a)])
+                else:
+                    u = self.cpuct * self.Ps[s,i][a] * math.sqrt(self.Ns[s] + EPS)  # Q = 0 ?
 
-                    if u > cur_best:
-                        cur_best = u
-                        best_act = a
+                if u > cur_best:
+                    cur_best = u
+                    best_act = a
             
             best_acts[i-2] = best_act
 
